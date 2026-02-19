@@ -100,11 +100,61 @@ function hasMcc250(value) {
     return /\bmcc\s*[:=]\s*250\b/i.test(value) || /"mcc"\s*:\s*"?250"?/i.test(value);
 }
 
+function splitPipeValues(value) {
+    if (!value) return [];
+    return value
+        .split('|')
+        .map(item => item.trim())
+        .filter(Boolean);
+}
+
 function buildVlanSummary(row) {
+    const compactLines = [];
+    const splitValues = VLAN_COMBINED_COLUMNS.map(col => splitPipeValues(row[col] || ''));
+    const maxLen = Math.max(0, ...splitValues.map(item => item.length));
+
+    for (let i = 0; i < maxLen; i++) {
+        const oneVlan = splitValues
+            .map(values => values[i] || '')
+            .filter(Boolean)
+            .join(' | ');
+
+        if (oneVlan) {
+            compactLines.push(`VLAN${i + 1}: ${oneVlan}`);
+        }
+    }
+
+    if (compactLines.length > 0) {
+        return compactLines.join(' || ');
+    }
+
     return VLAN_COMBINED_COLUMNS
         .map(col => row[col])
         .filter(Boolean)
         .join(' | ');
+}
+
+function buildRmodGroups(row, columns) {
+    const parsedColumns = columns.map(col => ({
+        col,
+        values: splitPipeValues(row[col] || '')
+    }));
+    const maxLen = Math.max(0, ...parsedColumns.map(item => item.values.length));
+
+    if (maxLen === 0) {
+        return [];
+    }
+
+    const groups = [];
+    for (let i = 0; i < maxLen; i++) {
+        const group = {};
+        parsedColumns.forEach(item => {
+            group[item.col] = item.values[i] || '';
+        });
+        groups.push(group);
+    }
+
+    return groups;
 }
 
 function getCellValue(sheet, row, col) {
@@ -116,14 +166,13 @@ function getCellValue(sheet, row, col) {
 
 // Загрузка данных при старте
 document.addEventListener('DOMContentLoaded', function() {
-    loadSearchHistory();
     preloadData();
 });
 
 function preloadData() {
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = '<div class="loading">Загрузка данных...</div>';
-    
+
     // Загружаем файл nokia_data.csv из папки расширения
     fetch(chrome.runtime.getURL('nokia_data.csv'))
         .then(response => {
@@ -137,9 +186,10 @@ function preloadData() {
             resultsDiv.innerHTML = '<div class="no-results">Введите номер MRBTS для поиска</div>';
             document.getElementById('stats').textContent = `📊 Всего записей: ${allData.length}`;
             document.getElementById('searchBtn').disabled = false;
-            
+
             // Показываем статистику по листам
             showSheetStats();
+            displayHistory();
         })
         .catch(error => {
             console.error('Ошибка загрузки:', error);
@@ -158,36 +208,36 @@ function showSheetStats() {
         const source = row.source_sheet || 'unknown';
         stats[source] = (stats[source] || 0) + 1;
     });
-    
+
     let statsHtml = '📊 Статистика по листам:\n';
     for (const [sheet, count] of Object.entries(stats)) {
         const displayName = SHEETS_CONFIG[sheet]?.displayName || sheet;
         statsHtml += `${displayName}: ${count} записей\n`;
     }
-    
+
     console.log(statsHtml);
 }
 
 function parseCSV(text) {
     const lines = text.split('\n');
     if (lines.length === 0) return;
-    
+
     const headers = parseCSVLine(lines[0]);
     allData = [];
-    
+
     for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
-        
+
         const values = parseCSVLine(lines[i]);
         const row = {};
-        
+
         headers.forEach((header, index) => {
             let value = values[index] || '';
             // Очищаем значение от кавычек и лишних пробелов
             value = value.replace(/^"|"$/g, '').trim();
             row[header] = value;
         });
-        
+
         allData.push(row);
     }
 }
@@ -196,10 +246,10 @@ function parseCSVLine(line) {
     const result = [];
     let current = '';
     let inQuotes = false;
-    
+
     for (let i = 0; i < line.length; i++) {
         const char = line[i];
-        
+
         if (char === '"') {
             inQuotes = !inQuotes;
         } else if (char === ',' && !inQuotes) {
@@ -209,7 +259,7 @@ function parseCSVLine(line) {
             current += char;
         }
     }
-    
+
     result.push(current);
     return result;
 }
@@ -217,24 +267,24 @@ function parseCSVLine(line) {
 function searchMRBTS(mrbtsValue) {
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = '<div class="loading">Поиск...</div>';
-    
+
     currentMRBTS = mrbtsValue.toString().trim();
-    
+
     setTimeout(() => {
         // Поиск по всем записям
         filteredData = allData.filter(row => {
             return row.MRBTS && row.MRBTS.toString().trim() === currentMRBTS;
         });
-        
+
         if (filteredData.length === 0) {
             resultsDiv.innerHTML = '<div class="no-results">❌ Ничего не найдено</div>';
             document.getElementById('stats').textContent = `Поиск по MRBTS: ${currentMRBTS} - не найдено`;
             return;
         }
-        
+
         // Горизонтальное отображение по листам
         displayHorizontalResults();
-        
+
         document.getElementById('stats').textContent = `✅ Найдено записей: ${filteredData.length} для MRBTS: ${currentMRBTS}`;
         addToHistory(mrbtsValue);
     }, 300);
@@ -248,15 +298,75 @@ function checkHighlight(row, col, value) {
     if (col === 'MNC' && value === HIGHLIGHT_VALUES['MNC']) {
         return 'highlight-green';
     }
-    
+
     // Проверяем вложенные поля (например, в accMmePlmnsList может быть MCC-MNC)
-    if (col === 'accMmePlmnsList' && value) {
-        if (hasMcc250(value)) {
-            return 'highlight-green';
-        }
+    if (col === 'accMmePlmnsList' && value && hasMcc250(value)) {
+        return 'highlight-green';
     }
-    
+
     return '';
+}
+
+function renderStandardRecordCard(sheet, row, index, displayColumns, config) {
+    let cardHtml = `
+        <div class="record-card">
+            <div class="record-card-header">Запись ${index + 1}</div>
+            <table class="result-table">
+    `;
+
+    displayColumns.forEach(col => {
+        let value = getCellValue(sheet, row, col);
+        const highlightClass = checkHighlight(row, col, value);
+
+        if (value.length > 160) {
+            value = value.substring(0, 160) + '...';
+        }
+
+        const displayName = col === 'VLAN' ? 'VLAN' : (config.columns[col] || col);
+        const tdClass = highlightClass ? ` class="${highlightClass}"` : '';
+        cardHtml += `<tr><th>${displayName}</th><td${tdClass} title="${getCellValue(sheet, row, col)}">${value || '—'}</td></tr>`;
+    });
+
+    cardHtml += `
+            </table>
+        </div>
+    `;
+
+    return cardHtml;
+}
+
+function renderBbmRecordCards(rows, displayColumns, config) {
+    let cardsHtml = '';
+    let rmodCounter = 1;
+
+    rows.forEach(row => {
+        const rmodGroups = buildRmodGroups(row, displayColumns);
+
+        rmodGroups.forEach(group => {
+            cardsHtml += `
+                <div class="record-card">
+                    <div class="record-card-header">RMOD${rmodCounter}</div>
+                    <table class="result-table">
+            `;
+
+            displayColumns.forEach(col => {
+                let value = group[col] || '';
+                if (value.length > 160) {
+                    value = value.substring(0, 160) + '...';
+                }
+
+                cardsHtml += `<tr><th>${config.columns[col] || col}</th><td title="${group[col] || ''}">${value || '—'}</td></tr>`;
+            });
+
+            cardsHtml += `
+                    </table>
+                </div>
+            `;
+            rmodCounter += 1;
+        });
+    });
+
+    return cardsHtml;
 }
 
 function displayHorizontalResults() {
@@ -315,31 +425,13 @@ function displayHorizontalResults() {
                 <div class="records-grid">
         `;
 
-        rows.forEach((row, index) => {
-            html += `
-                <div class="record-card">
-                    <div class="record-card-header">Запись ${index + 1}</div>
-                    <table class="result-table">
-            `;
-
-            displayColumns.forEach(col => {
-                let value = getCellValue(sheet, row, col);
-                const highlightClass = checkHighlight(row, col, value);
-
-                if (value.length > 160) {
-                    value = value.substring(0, 160) + '...';
-                }
-
-                const displayName = col === 'VLAN' ? 'VLAN' : (config.columns[col] || col);
-                const tdClass = highlightClass ? ` class="${highlightClass}"` : '';
-                html += `<tr><th>${displayName}</th><td${tdClass} title="${getCellValue(sheet, row, col)}">${value || '—'}</td></tr>`;
+        if (sheet === 'BBMOD_R') {
+            html += renderBbmRecordCards(rows, displayColumns, config);
+        } else {
+            rows.forEach((row, index) => {
+                html += renderStandardRecordCard(sheet, row, index, displayColumns, config);
             });
-
-            html += `
-                    </table>
-                </div>
-            `;
-        });
+        }
 
         html += `
                 </div>
@@ -353,7 +445,7 @@ function displayHorizontalResults() {
 function copyAllData() {
     let text = `MRBTS: ${currentMRBTS}\n`;
     text += '='.repeat(50) + '\n\n';
-    
+
     const groupedBySheet = {};
     filteredData.forEach(row => {
         const sheet = row.source_sheet || 'Другие данные';
@@ -362,17 +454,37 @@ function copyAllData() {
         }
         groupedBySheet[sheet].push(row);
     });
-    
+
     for (const [sheet, rows] of Object.entries(groupedBySheet)) {
         const config = SHEETS_CONFIG[sheet] || { displayName: sheet, columns: {} };
         text += `\n📌 ${config.displayName} (${rows.length} записей)\n`;
         text += '-'.repeat(40) + '\n';
-        
+
+        if (sheet === 'BBMOD_R') {
+            let rmodCounter = 1;
+            rows.forEach(row => {
+                const displayColumns = Object.keys(config.columns).filter(col => row[col]);
+                const rmodGroups = buildRmodGroups(row, displayColumns);
+                rmodGroups.forEach(group => {
+                    text += `\nRMOD${rmodCounter}:\n`;
+                    displayColumns.forEach(col => {
+                        const value = group[col] || '';
+                        if (value) {
+                            text += `${config.columns[col] || col}: ${value}\n`;
+                        }
+                    });
+                    rmodCounter += 1;
+                });
+            });
+            text += '\n';
+            continue;
+        }
+
         rows.forEach((row, index) => {
             if (rows.length > 1) {
                 text += `\nЗапись ${index + 1}:\n`;
             }
-            
+
             if (sheet === 'VLANIF') {
                 const vlanValue = buildVlanSummary(row);
                 if (vlanValue) {
@@ -386,7 +498,7 @@ function copyAllData() {
                 if (col !== 'MRBTS' && col !== 'source_sheet' && col !== 'MRBTS_str' && row[col]) {
                     const displayName = config.columns[col] || col;
                     const value = row[col];
-                    
+
                     // Добавляем пометку о совпадении MCC/MNC
                     let marker = '';
                     if ((col === 'MCC' && value === HIGHLIGHT_VALUES['MCC']) ||
@@ -394,14 +506,14 @@ function copyAllData() {
                         (col === 'accMmePlmnsList' && value && hasMcc250(value))) {
                         marker = ' ✓';
                     }
-                    
+
                     text += `${displayName}: ${value}${marker}\n`;
                 }
             });
             text += '\n';
         });
     }
-    
+
     navigator.clipboard.writeText(text).then(() => {
         alert('✅ Данные скопированы в буфер обмена');
     });
@@ -416,7 +528,6 @@ function addToHistory(mrbtsValue) {
         searchHistory = searchHistory.slice(0, 5);
     }
 
-    saveSearchHistory();
     displayHistory();
 }
 
@@ -426,24 +537,12 @@ function displayHistory() {
         historyDiv.innerHTML = '';
         return;
     }
-    
+
     let html = '📜 История: ';
     searchHistory.forEach(value => {
-        html += `<span class="history-item" onclick="document.getElementById('mrbtsInput').value='${value}'; searchMRBTS('${value}')">${value}</span>`;
+        html += `<button class="history-item" data-value="${value}">${value}</button>`;
     });
     historyDiv.innerHTML = html;
-}
-
-function saveSearchHistory() {
-    localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
-}
-
-function loadSearchHistory() {
-    const saved = localStorage.getItem('searchHistory');
-    if (saved) {
-        searchHistory = JSON.parse(saved);
-        displayHistory();
-    }
 }
 
 // Добавляем обработчик Enter
@@ -459,8 +558,23 @@ document.getElementById('searchBtn').addEventListener('click', function() {
         showTemporaryError('Введите номер MRBTS');
         return;
     }
-    
+
     searchMRBTS(mrbtsValue);
+});
+
+document.getElementById('history').addEventListener('click', function(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || !target.classList.contains('history-item')) {
+        return;
+    }
+
+    const value = target.dataset.value || '';
+    if (!value) {
+        return;
+    }
+
+    document.getElementById('mrbtsInput').value = value;
+    searchMRBTS(value);
 });
 
 function showTemporaryError(message) {
