@@ -93,6 +93,27 @@ const HIGHLIGHT_VALUES = {
     'MNC': '20'
 };
 
+const VLAN_COMBINED_COLUMNS = ['TNLSVC', 'TNL', 'ETHSVC', 'ETHIF', 'VLANIF', 'vlanid', 'userLabel'];
+
+function hasMcc250(value) {
+    if (!value) return false;
+    return /\bmcc\s*[:=]\s*250\b/i.test(value) || /"mcc"\s*:\s*"?250"?/i.test(value);
+}
+
+function buildVlanSummary(row) {
+    return VLAN_COMBINED_COLUMNS
+        .map(col => row[col])
+        .filter(Boolean)
+        .join(' | ');
+}
+
+function getCellValue(sheet, row, col) {
+    if (sheet === 'VLANIF' && col === 'VLAN') {
+        return buildVlanSummary(row);
+    }
+    return row[col] || '';
+}
+
 // Загрузка данных при старте
 document.addEventListener('DOMContentLoaded', function() {
     loadSearchHistory();
@@ -230,7 +251,7 @@ function checkHighlight(row, col, value) {
     
     // Проверяем вложенные поля (например, в accMmePlmnsList может быть MCC-MNC)
     if (col === 'accMmePlmnsList' && value) {
-        if (value.includes('250-20') || value.includes('25020')) {
+        if (hasMcc250(value)) {
             return 'highlight-green';
         }
     }
@@ -281,6 +302,10 @@ function displayHorizontalResults() {
             displayColumns = Array.from(allColumns);
         }
 
+        if (sheet === 'VLANIF') {
+            displayColumns = ['VLAN'];
+        }
+
         html += `
             <div class="sheet-section">
                 <div class="sheet-header">
@@ -298,16 +323,16 @@ function displayHorizontalResults() {
             `;
 
             displayColumns.forEach(col => {
-                let value = row[col] || '';
+                let value = getCellValue(sheet, row, col);
                 const highlightClass = checkHighlight(row, col, value);
 
                 if (value.length > 160) {
                     value = value.substring(0, 160) + '...';
                 }
 
-                const displayName = config.columns[col] || col;
+                const displayName = col === 'VLAN' ? 'VLAN' : (config.columns[col] || col);
                 const tdClass = highlightClass ? ` class="${highlightClass}"` : '';
-                html += `<tr><th>${displayName}</th><td${tdClass} title="${row[col] || ''}">${value || '—'}</td></tr>`;
+                html += `<tr><th>${displayName}</th><td${tdClass} title="${getCellValue(sheet, row, col)}">${value || '—'}</td></tr>`;
             });
 
             html += `
@@ -348,6 +373,15 @@ function copyAllData() {
                 text += `\nЗапись ${index + 1}:\n`;
             }
             
+            if (sheet === 'VLANIF') {
+                const vlanValue = buildVlanSummary(row);
+                if (vlanValue) {
+                    text += `VLAN: ${vlanValue}\n`;
+                }
+                text += '\n';
+                return;
+            }
+
             Object.keys(row).forEach(col => {
                 if (col !== 'MRBTS' && col !== 'source_sheet' && col !== 'MRBTS_str' && row[col]) {
                     const displayName = config.columns[col] || col;
@@ -357,7 +391,7 @@ function copyAllData() {
                     let marker = '';
                     if ((col === 'MCC' && value === HIGHLIGHT_VALUES['MCC']) ||
                         (col === 'MNC' && value === HIGHLIGHT_VALUES['MNC']) ||
-                        (col === 'accMmePlmnsList' && value && (value.includes('250-20') || value.includes('25020')))) {
+                        (col === 'accMmePlmnsList' && value && hasMcc250(value))) {
                         marker = ' ✓';
                     }
                     
