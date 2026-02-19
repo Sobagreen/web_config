@@ -4,6 +4,8 @@ let searchHistory = [];
 let currentMRBTS = '';
 
 // Конфигурация листов и переименования столбцов
+// Чтобы переименовать поле в UI: добавьте ключ в `columns` нужного листа.
+// Можно указывать как короткое имя (`LNCEL`), так и полное (`LNCEL_FDD_LNCEL`).
 const SHEETS_CONFIG = {
     'VLANIF': {
         displayName: 'VLAN интерфейсы',
@@ -44,6 +46,7 @@ const SHEETS_CONFIG = {
         displayName: 'MME подключения',
         columns: {
             'LNBTS': 'ИМЯ БС',
+            'LNMME_LNBTS': 'ИМЯ БС',
             'LNMME': 'LNMME',
             'administrativeState': 'Состояние',
             'ipAddrPrim': 'Primary IP',
@@ -65,8 +68,10 @@ const SHEETS_CONFIG = {
     'LNCEL_FDD': {
         displayName: 'FDD ячейки',
         columns: {
-            'LNCEL': 'LNCEL',
-            'LNBTS': 'LNBTS',
+            'LNCEL': 'Соты FDD',
+            'LNCEL_FDD_LNCEL': 'Соты FDD',
+            'LNBTS': 'ИМЯ БС',
+            'LNCEL_FDD_LNBTS': 'ИМЯ БС',
             'earfcnDL': 'EARFCN DL',
             'earfcnUL': 'EARFCN UL'
         }
@@ -82,7 +87,8 @@ const SHEETS_CONFIG = {
             'productCode': 'Код продукта',
             'productName': 'Название продукта',
             'serialNumber': 'Серийный номер',
-            'verticalPosition': 'Позиция'
+            'verticalPosition': 'Позиция',
+            'BBMOD_R_verticalPosition': 'Позиция'
         }
     }
 };
@@ -193,7 +199,7 @@ function renderPipeList(value) {
 
 function renderVerticalPosition(value) {
     const positions = splitPipeValues(value)
-        .map(item => parseInt(item, 10))
+        .map(item => Math.round(parseFloat(item)))
         .filter(item => !Number.isNaN(item) && item >= 1 && item <= 4);
 
     return `
