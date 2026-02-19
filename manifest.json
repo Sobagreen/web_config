@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Nokia 4G MRBTS Search",
+  "version": "1.0",
+  "description": "Поиск информации по MRBTS в данных Nokia 4G",
+  "permissions": [
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "web_accessible_resources": [{
+    "resources": ["nokia_data.csv"],
+    "matches": ["<all_urls>"]
+  }]
+}
