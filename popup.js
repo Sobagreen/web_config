@@ -248,21 +248,21 @@ function displayHorizontalResults() {
         }
         groupedBySheet[sheet].push(row);
     });
-    
+
     let html = `
         <div class="mrbts-header">
             <h3>📡 MRBTS: ${currentMRBTS}</h3>
             <button class="copy-btn" onclick="copyAllData()">📋 Копировать всё</button>
         </div>
     `;
-    
-    // Для каждого листа создаем горизонтальную секцию
+
+    // Для каждого листа создаем секцию с карточками записей
     for (const [sheet, rows] of Object.entries(groupedBySheet)) {
         const config = SHEETS_CONFIG[sheet] || {
             displayName: sheet,
             columns: {}
         };
-        
+
         // Собираем все уникальные колонки для этого листа
         const allColumns = new Set();
         rows.forEach(row => {
@@ -272,60 +272,56 @@ function displayHorizontalResults() {
                 }
             });
         });
-        
+
         // Фильтруем колонки согласно конфигурации
         let displayColumns = [];
         if (Object.keys(config.columns).length > 0) {
-            // Используем только колонки из конфигурации
             displayColumns = Object.keys(config.columns).filter(col => allColumns.has(col));
         } else {
-            // Или все колонки кроме служебных
             displayColumns = Array.from(allColumns);
         }
-        
+
         html += `
             <div class="sheet-section">
                 <div class="sheet-header">
                     <h4>📌 ${config.displayName}</h4>
                     <span class="badge">${rows.length} записей</span>
                 </div>
-                <div class="horizontal-scroll">
-                    <table class="result-table">
+                <div class="records-grid">
         `;
-        
-        // Заголовки с переименованными названиями
-        html += '<tr>';
-        displayColumns.forEach(col => {
-            const displayName = config.columns[col] || col;
-            html += `<th>${displayName}</th>`;
-        });
-        html += '</tr>';
-        
-        // Данные
-        rows.forEach(row => {
-            html += '<tr>';
+
+        rows.forEach((row, index) => {
+            html += `
+                <div class="record-card">
+                    <div class="record-card-header">Запись ${index + 1}</div>
+                    <table class="result-table">
+            `;
+
             displayColumns.forEach(col => {
                 let value = row[col] || '';
                 const highlightClass = checkHighlight(row, col, value);
-                
-                if (value.length > 100) {
-                    value = value.substring(0, 100) + '...';
+
+                if (value.length > 160) {
+                    value = value.substring(0, 160) + '...';
                 }
-                
-                // Добавляем класс подсветки если нужно
+
+                const displayName = config.columns[col] || col;
                 const tdClass = highlightClass ? ` class="${highlightClass}"` : '';
-                html += `<td${tdClass} title="${row[col] || ''}">${value}</td>`;
+                html += `<tr><th>${displayName}</th><td${tdClass} title="${row[col] || ''}">${value || '—'}</td></tr>`;
             });
-            html += '</tr>';
-        });
-        
-        html += `
+
+            html += `
                     </table>
+                </div>
+            `;
+        });
+
+        html += `
                 </div>
             </div>
         `;
     }
-    
+
     document.getElementById('results').innerHTML = html;
 }
 
@@ -378,14 +374,16 @@ function copyAllData() {
 }
 
 function addToHistory(mrbtsValue) {
-    if (!searchHistory.includes(mrbtsValue)) {
-        searchHistory.unshift(mrbtsValue);
-        if (searchHistory.length > 5) {
-            searchHistory.pop();
-        }
-        saveSearchHistory();
-        displayHistory();
+    const normalizedValue = mrbtsValue.toString().trim();
+    searchHistory = searchHistory.filter(item => item.toString() !== normalizedValue);
+    searchHistory.unshift(normalizedValue);
+
+    if (searchHistory.length > 5) {
+        searchHistory = searchHistory.slice(0, 5);
     }
+
+    saveSearchHistory();
+    displayHistory();
 }
 
 function displayHistory() {
