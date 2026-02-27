@@ -4,6 +4,7 @@ let config2gMap = new Map();      // Config_2G.csv: код -> массив ст�
 let ant4gMap = new Map();         // 4G_ANT.csv: X-ключ -> массив строк {A,C,D,E}
 let optSpeedMap = new Map();      // OPT_Speed.csv: ключ (Z) -> массив строк {M,H}
 let rdbMap = new Map();           // RDB.csv: BS_NAME -> массив строк {N,O,P,R}
+let syncMap = new Map();          // Nokia_Check_sync_BS_and_Verification_parameters.csv: код(C) -> массив строк {N,O,P,Q,R}
 
 let sitesLoaded = false;
 let buildDataLoaded = false;
@@ -131,6 +132,7 @@ async function handleSearch({ openIp, showBuild }) {
     renderLncelResults(code);
     renderConfig2gResults(code);
     renderAnt4gResults(code);
+    renderSyncResults(code);
   }
 
   // --- Открыть IP ---
@@ -153,7 +155,7 @@ async function handleSearch({ openIp, showBuild }) {
 /* ================== Общие утилиты ================== */
 
 function clearResults() {
-  ['rdbContainer', 'lncelContainer', 'config2gContainer', 'ant4gContainer'].forEach(id => {
+  ['rdbContainer', 'lncelContainer', 'config2gContainer', 'ant4gContainer', 'syncContainer'].forEach(id => {
     const c = document.getElementById(id);
     if (c) c.innerHTML = '';
   });
@@ -550,6 +552,59 @@ function renderAnt4gResults(code) {
   container.appendChild(table);
 }
 
+
+function renderSyncResults(code) {
+  const container = document.getElementById('syncContainer');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const matches = syncMap.get(code) || [];
+  if (matches.length === 0) {
+    container.textContent = 'Нет данных в Nokia_Check_sync_BS_and_Verification_parameters.';
+    return;
+  }
+
+  const table = document.createElement('table');
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+
+  const headers = [
+    'Router',
+    'PtpLoopBack',
+    'Port',
+    'Vlan',
+    'GW'
+  ];
+
+  headers.forEach(h => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    headRow.appendChild(th);
+  });
+
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+
+  matches.forEach(row => {
+    const tr = document.createElement('tr');
+    const cells = [row.N, row.O, row.P, row.Q, row.R];
+
+    cells.forEach(v => {
+      const td = document.createElement('td');
+      td.textContent = v || '';
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
 /* ================== ЗАГРУЗКА CSV ================== */
 
 async function loadSitesCsv() {
@@ -566,7 +621,8 @@ async function loadBuildCsv() {
     loadConfig2gCsv(),
     loadAnt4gCsv(),
     loadOptSpeedCsv(),
-    loadRdbCsv()
+    loadRdbCsv(),
+    loadSyncCsv()
   ]);
 }
 
@@ -614,6 +670,14 @@ async function loadRdbCsv() {
   const text = decoder.decode(buf);
 
   parseRdbCsv(text);
+}
+
+async function loadSyncCsv() {
+  const url = chrome.runtime.getURL('Nokia_Check_sync_BS_and_Verification_parameters.csv');
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('Не удалось загрузить Nokia_Check_sync_BS_and_Verification_parameters.csv');
+  const text = await resp.text();
+  parseSyncCsv(text);
 }
 
 /* ================== PARSERS ================== */
@@ -756,5 +820,31 @@ function parseRdbCsv(t) {
 
     if (!rdbMap.has(code)) rdbMap.set(code, []);
     rdbMap.get(code).push(row);
+  }
+}
+
+
+function parseSyncCsv(t) {
+  const lines = t.split(/\r?\n/).filter(Boolean);
+  if (!lines.length) return;
+  const delim = detectDelimiter(lines[0]);
+
+  for (let i = 1; i < lines.length; i++) {
+    const c = splitCsvLine(lines[i], delim);
+    if (c.length < 18) continue;
+
+    const code = removeBomAndTrim(c[2]).toUpperCase(); // C
+    if (!code) continue;
+
+    const row = {
+      N: removeBomAndTrim(c[13]), // N -> Router
+      O: removeBomAndTrim(c[14]), // O -> PtpLoopBack
+      P: removeBomAndTrim(c[15]), // P -> Port
+      Q: removeBomAndTrim(c[16]), // Q -> Vlan
+      R: removeBomAndTrim(c[17])  // R -> GW
+    };
+
+    if (!syncMap.has(code)) syncMap.set(code, []);
+    syncMap.get(code).push(row);
   }
 }
