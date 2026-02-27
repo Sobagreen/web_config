@@ -1,12 +1,7 @@
-const POPUP_WIDTH = 1880;
-const POPUP_HEIGHT = 900;
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+});
 
-chrome.action.onClicked.addListener(() => {
-  chrome.windows.create({
-    url: chrome.runtime.getURL('popup.html'),
-    type: 'popup',
-    width: POPUP_WIDTH,
-    height: POPUP_HEIGHT,
-    focused: true
-  });
+chrome.runtime.onStartup.addListener(() => {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 });

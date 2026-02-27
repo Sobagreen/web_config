@@ -12,12 +12,9 @@
       margin: 0;
       padding: 20px;
       box-sizing: border-box;
-      /* ===== ЗДЕСЬ ЗАДАЕТСЯ РАЗМЕР POPUP-ОКНА ===== */
       width: 100%;
-      max-width: 1880px;
-      height: 900px;
-      min-width: 1680px;
-      min-height: 820px;
+      height: 100vh;
+      min-height: 100vh;
       background: #f5f5f7;
       overflow: hidden;
     }
@@ -137,23 +134,24 @@
       font-weight: 500;
     }
 
-    /* Четырёхколоночный макет */
+    /* Адаптивный макет под side panel */
     #resultsContainer {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 16px;
       flex: 1;
       min-height: 0;
-      overflow: hidden;
+      overflow: auto;
     }
 
     .results-column {
-      flex: 1;
       background: #f8fafc;
       border-radius: 12px;
       padding: 16px;
       overflow-y: auto;
       border: 1px solid #e2e8f0;
       min-width: 0;
+      max-height: 100%;
     }
 
     .results-column::-webkit-scrollbar {

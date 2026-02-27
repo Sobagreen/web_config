@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "IP Finder by Code",
-  "version": "1.0",
+  "version": "1.1",
   "description": "По коду XXYYYY находит IP в таблице и открывает его в текущей вкладке.",
   "action": {
     "default_title": "Найти IP по коду"
@@ -9,8 +9,11 @@
   "background": {
     "service_worker": "background.js"
   },
+  "side_panel": {
+    "default_path": "popup.html"
+  },
   "permissions": [
     "tabs",
-    "windows"
+    "sidePanel"
   ]
 }
