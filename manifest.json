@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "IP Finder by Code",
+  "version": "1.0",
+  "description": "По коду XXYYYY находит IP в таблице и открывает его в текущей вкладке.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Найти IP по коду"
+  },
+  "permissions": [
+    "tabs"
+  ],
+  "icons": {
+    "128": "logo.ico"
+  }
+}

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Конфиг БС MR SOUTH</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      /* ===== ЗДЕСЬ ЗАДАЕТСЯ РАЗМЕР POPUP-ОКНА ===== */
+      width: 1400px;        /* Ширина окна */
+      height: 800px;        /* Высота окна */
+      min-width: 1200px;    /* Минимальная ширина */
+      min-height: 700px;    /* Минимальная высота */
+      background: #f5f5f7;
+      overflow: hidden;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 20px 24px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      box-sizing: border-box;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #e2e8f0;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin: 0 0 8px 0;
+      color: #0f172a;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 16px;
+      padding: 12px 16px;
+      background: #f8fafc;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      line-height: 1.5;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      background: #f8fafc;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    #codeInput {
+      flex: 0 0 140px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      font-size: 15px;
+      font-weight: 500;
+      box-sizing: border-box;
+      transition: all 0.2s;
+      background: white;
+    }
+
+    #codeInput:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #ipBtn {
+      background: #2563eb;
+      color: #fff;
+    }
+
+    #ipBtn:hover {
+      background: #1d4ed8;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    #buildBtn {
+      background: #10b981;
+      color: #fff;
+    }
+
+    #buildBtn:hover {
+      background: #059669;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .status {
+      font-size: 13px;
+      color: #334155;
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      background: #f0f9ff;
+      border-radius: 8px;
+      border-left: 4px solid #2563eb;
+      white-space: pre-line;
+      font-weight: 500;
+    }
+
+    /* Трёхколоночный макет */
+    #resultsContainer {
+      display: flex;
+      gap: 16px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .results-column {
+      flex: 1;
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 16px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      min-width: 0;
+    }
+
+    .results-column::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .results-column::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+
+    .results-column::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 10px;
+    }
+
+    .column-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 12px 0;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e2e8f0;
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      z-index: 10;
+    }
+
+    .results-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+      margin: 12px 0 8px 0;
+      padding-left: 6px;
+      border-left: 3px solid #2563eb;
+    }
+
+    .results-section-title:first-of-type {
+      margin-top: 0;
+    }
+
+    .no-results {
+      font-size: 12px;
+      color: #64748b;
+      margin: 8px 0;
+      padding: 16px;
+      text-align: center;
+      background: #ffffff;
+      border-radius: 8px;
+      border: 1px dashed #cbd5e1;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 12px;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+    }
+
+    thead {
+      background: #f1f5f9;
+    }
+
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 6px 8px;
+      text-align: left;
+      box-sizing: border-box;
+    }
+
+    th {
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fafafa;
+    }
+
+    tbody tr:hover {
+      background: #f1f5f9;
+    }
+
+    .code-highlight {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-weight: 600;
+      color: #2563eb;
+      background: #dbeafe;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    /* Скрываем первый столбец (П\Н) для всех таблиц */
+    th.col-idx,
+    td.col-idx {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔧 Конфиг БС MR SOUTH</h1>
+    
+    <div class="subtitle">
+      <span style="display: inline-flex; align-items: center; gap: 6px; margin-right: 20px;">
+        <span style="background: #2563eb; width: 6px; height: 6px; border-radius: 50%;"></span>
+        Формат: <span class="code-highlight">XXYYYY</span>
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; margin-right: 20px;">
+        <span style="background: #2563eb; width: 6px; height: 6px; border-radius: 50%;"></span>
+        <b>Кнопка IP</b> — подключение
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 6px; margin-right: 20px;">
+        <span style="background: #10b981; width: 6px; height: 6px; border-radius: 50%;"></span>
+        <b>Кнопка Build</b> — информация
+      </span>
+      <span style="display: inline-flex; align-items: center; gap: 6px;">
+        <span style="background: #f59e0b; width: 6px; height: 6px; border-radius: 50%;"></span>
+        <b>Enter</b> — IP, <b>Ctrl+Enter</b> — Build
+      </span>
+    </div>
+
+    <div class="form-row">
+      <label for="codeInput">Код БС:</label>
+      <input id="codeInput" type="text" placeholder="AB1234" maxlength="6" />
+      <button id="ipBtn" class="btn">🔌 Connect IP</button>
+      <button id="buildBtn" class="btn">🏗️ Build Info</button>
+    </div>
+
+    <div id="status" class="status">
+      ⚡ Таблица IP загружена. Введите код.
+    </div>
+
+    <!-- Три колонки результатов -->
+    <div id="resultsContainer">
+      <!-- Колонка 1: 4G информация -->
+      <div class="results-column">
+        <div class="column-title">📡 4G информация</div>
+        <div class="results-section">
+          <div class="results-section-title">RDB данные</div>
+          <div id="rdbContainer"></div>
+        </div>
+        <div class="results-section">
+          <div class="results-section-title">LNCEL конфигурация</div>
+          <div id="lncelContainer"></div>
+        </div>
+      </div>
+
+      <!-- Колонка 2: 2G информация -->
+      <div class="results-column">
+        <div class="column-title">📱 2G сектора</div>
+        <div class="results-section">
+          <div id="config2gContainer"></div>
+        </div>
+      </div>
+
+      <!-- Колонка 3: ANT + RMOD информация -->
+      <div class="results-column">
+        <div class="column-title">🔌 ANT + RMOD</div>
+        <div class="results-section">
+          <div id="ant4gContainer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
