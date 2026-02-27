@@ -13,10 +13,11 @@
       padding: 20px;
       box-sizing: border-box;
       /* ===== ЗДЕСЬ ЗАДАЕТСЯ РАЗМЕР POPUP-ОКНА ===== */
-      width: 1400px;        /* Ширина окна */
-      height: 800px;        /* Высота окна */
-      min-width: 1200px;    /* Минимальная ширина */
-      min-height: 700px;    /* Минимальная высота */
+      width: 100%;
+      max-width: 1880px;
+      height: 900px;
+      min-width: 1680px;
+      min-height: 820px;
       background: #f5f5f7;
       overflow: hidden;
     }
@@ -136,7 +137,7 @@
       font-weight: 500;
     }
 
-    /* Трёхколоночный макет */
+    /* Четырёхколоночный макет */
     #resultsContainer {
       display: flex;
       gap: 16px;
@@ -296,7 +297,7 @@
       ⚡ Таблица IP загружена. Введите код.
     </div>
 
-    <!-- Три колонки результатов -->
+    <!-- Четыре колонки результатов -->
     <div id="resultsContainer">
       <!-- Колонка 1: 4G информация -->
       <div class="results-column">
@@ -324,6 +325,13 @@
         <div class="column-title">🔌 ANT + RMOD</div>
         <div class="results-section">
           <div id="ant4gContainer"></div>
+        </div>
+      </div>
+      <!-- Колонка 4: Синхронизация -->
+      <div class="results-column">
+        <div class="column-title">🛰️ Синхронизация</div>
+        <div class="results-section">
+          <div id="syncContainer"></div>
         </div>
       </div>
     </div>

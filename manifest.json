@@ -4,11 +4,14 @@
   "version": "1.0",
   "description": "По коду XXYYYY находит IP в таблице и открывает его в текущей вкладке.",
   "action": {
-    "default_popup": "popup.html",
     "default_title": "Найти IP по коду"
   },
+  "background": {
+    "service_worker": "background.js"
+  },
   "permissions": [
-    "tabs"
+    "tabs",
+    "windows"
   ],
   "icons": {
     "128": "logo.ico"
