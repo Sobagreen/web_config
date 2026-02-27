@@ -12,8 +12,5 @@
   "permissions": [
     "tabs",
     "windows"
-  ],
-  "icons": {
-    "128": "logo.ico"
-  }
+  ]
 }
